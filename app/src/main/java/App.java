@@ -23,39 +23,33 @@ public class App {
 
         RepositoryService repositoryService = processEngine.getRepositoryService();
         Deployment deployment = repositoryService.createDeployment()
-                                                 .addClasspathResource("project.bpmn20.xml")
+                                                 .addClasspathResource("miasi.bpmn20.xml")
                                                  .deploy();
 
         ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
                                                                .deploymentId(deployment.getId())
                                                                .singleResult();
         System.out.println("Found process definition : " + processDefinition.getName());
-
-
         Scanner scanner= new Scanner(System.in);
 
-        System.out.println("Who are you?");
-        String employee = scanner.nextLine();
-
-        System.out.println("How many holidays do you want to request?");
-        Integer nrOfHolidays = Integer.valueOf(scanner.nextLine());
-
-        System.out.println("Why do you need them?");
-        String description = scanner.nextLine();
-
+        String mail = "michaj96";
+        String destynacja = "Berlin, Niemcy";
+        int iloscDni = 3;
+        String data = "15.05.2020";
 
         RuntimeService runtimeService = processEngine.getRuntimeService();
 
         Map<String, Object> variables = new HashMap<String, Object>();
-        variables.put("employee", employee);
-        variables.put("nrOfHolidays", nrOfHolidays);
-        variables.put("description", description);
+        variables.put("destynacja", destynacja);
+        variables.put("iloscDni", iloscDni);
+        variables.put("data", data);
+        variables.put("mail", mail);
         ProcessInstance processInstance =
-                runtimeService.startProcessInstanceByKey("holidayRequest", variables);
+                runtimeService.startProcessInstanceByKey("process", variables);
 
 
         TaskService taskService = processEngine.getTaskService();
-        List<Task> tasks = taskService.createTaskQuery().taskCandidateGroup("managers").list();
+        List<Task> tasks = taskService.createTaskQuery().taskCandidateGroup("pracownicy").list();
         System.out.println("You have " + tasks.size() + " tasks:");
         for (int i=0; i<tasks.size(); i++) {
             System.out.println((i+1) + ") " + tasks.get(i).getName());
@@ -65,14 +59,15 @@ public class App {
         int taskIndex = Integer.valueOf(scanner.nextLine());
         Task task = tasks.get(taskIndex - 1);
         Map<String, Object> processVariables = taskService.getVariables(task.getId());
-        System.out.println(processVariables.get("employee") + " wants " +
-                           processVariables.get("nrOfHolidays") + " of holidays. Do you approve this?");
+        System.out.println("Klient chce wyjechac do " + processVariables.get("destynacja") + " na " +
+                           processVariables.get("iloscDni") + " poczynajac od dnia " + processVariables.get("data") +
+                           ". Podaj cene takiej wycieczki: ");
 
-        boolean approved = scanner.nextLine().toLowerCase().equals("y");
-        variables = new HashMap<String, Object>();
-        variables.put("approved", approved);
+        float cena = Float.valueOf(scanner.nextLine());
+//        variables = new HashMap<String, Object>();
+        variables.put("cena", cena);
         taskService.complete(task.getId(), variables);
-
+//
         HistoryService historyService = processEngine.getHistoryService();
         List<HistoricActivityInstance> activities =
                 historyService.createHistoricActivityInstanceQuery()

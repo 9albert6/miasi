@@ -1,0 +1,59 @@
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:flowable="http://flowable.org/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" typeLanguage="http://www.w3.org/2001/XMLSchema" expressionLanguage="http://www.w3.org/1999/XPath" targetNamespace="http://www.activiti.org/processdef">
+    <message id="zgoda" name="odpowiedz"/>
+    <process id="process" name="process" isExecutable="true">
+
+        <startEvent id="holidayRequest" name="Holiday Request" flowable:formFieldValidation="true"/>
+        <sequenceFlow sourceRef="holidayRequest" targetRef="wycenaWycieczki"/>
+
+        <userTask id="wycenaWycieczki" name="Przygotuj wstepna wycene wycieczki" flowable:candidateGroups="pracownicy"/>
+        <sequenceFlow sourceRef="wycenaWycieczki" targetRef="wyslijWycene"/>
+
+        <serviceTask id="wyslijWycene" name="Wyslij wycene" flowable:class="SendMail"/>
+        <sequenceFlow sourceRef="wyslijWycene" targetRef="eventGateway"/>
+
+        <eventBasedGateway id="eventGateway" flowable:async="true" flowable:exclusive="false"/>
+        <sequenceFlow sourceRef="eventGateway" targetRef="timer"/>
+        <sequenceFlow sourceRef="eventGateway" targetRef="odbierzOdpowiedz"/>
+
+        <intermediateCatchEvent id="timer" name="7 dni">
+            <timerEventDefinition>
+                <timeDuration>P1W</timeDuration>
+            </timerEventDefinition>
+        </intermediateCatchEvent>
+
+        <intermediateCatchEvent id="odbierzOdpowiedz" name="Odbierz odpowiedz ">
+            <messageEventDefinition messageRef="zgoda"/>
+        </intermediateCatchEvent>
+
+        <sequenceFlow sourceRef="timer" targetRef="brakZgody"/>
+        <sequenceFlow sourceRef="odbierzOdpowiedz" targetRef="exgat"/>
+
+        <exclusiveGateway id="exgat" name="Zgodzil sie"/>
+        <sequenceFlow id="flow1" name="Tak " sourceRef="exgat" targetRef="PlikZDanymiKlienta">
+            <conditionExpression xsi:type="tFormalExpression">
+                <![CDATA[ zgoda==1 ]]>
+            </conditionExpression>
+        </sequenceFlow>
+
+        <sequenceFlow id="flow2" name="Nie " sourceRef="exgat" targetRef="brakZgody">
+            <conditionExpression xsi:type="tFormalExpression">
+                <![CDATA[ zgoda==0 ]]>
+            </conditionExpression>
+        </sequenceFlow>
+        <endEvent id="brakZgody" name="Zakoncz proces"/>
+
+        <serviceTask id="PlikZDanymiKlienta" name="Stworz plik z danymi klienta" flowable:class="CreateClientInfo"/>
+        <sequenceFlow sourceRef="PlikZDanymiKlienta" targetRef="RezerwujWycieczke"/>
+
+        <userTask id="RezerwujWycieczke" name="Rezerwuj wycieczkę" flowable:candidateGroups="pracownicy"/>
+        <sequenceFlow  sourceRef="RezerwujWycieczke" targetRef="WyslijPotwierdzenie"/>
+
+
+        <serviceTask id="WyslijPotwierdzenie" name="Wyslij potwierdzenie" flowable:class="WyslijPotwierdzenie"/>
+
+
+        <sequenceFlow sourceRef="WyslijPotwierdzenie" targetRef="koniec"/>
+        <endEvent id="koniec"/>
+
+    </process>
+</definitions>
